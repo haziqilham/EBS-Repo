@@ -5,12 +5,16 @@
 #include <vl53l1_error_codes.h>
 #include <Wire.h>
 #include <Arduino_MKRIoTCarrier.h> // provides Oplà carrier functions to the program
+#include <Servo.h>
+
 MKRIoTCarrier carrier;
 SFEVL53L1X distanceSensor;
+Servo Servo1;
 
 float temperature;
 float humidity;
 int r, b, g, a;
+int servoPin = A3;
 
 void setup(void)
 {
@@ -29,6 +33,8 @@ void setup(void)
       ;
   }
   Serial.println("Sensor online!");
+
+  Servo1.attach(servoPin);
 }
 
 
@@ -70,5 +76,15 @@ void loop(void)
   Serial.println(a);
   delay(1000);
 
+   // Make servo go to 0 degrees 
+   Servo1.write(0); 
+   delay(1000); 
+   // Make servo go to 90 degrees 
+   Servo1.write(90); 
+   delay(1000); 
+   // Make servo go to 180 degrees 
+   Servo1.write(180); 
+   delay(1000); 
+   
   Serial.println();
 }
