@@ -1,12 +1,4 @@
-/*
-   ARM/SAP Singapore Management University Project
-   Tutorial code for lecture and learning labs
 
-   Sample project: OplÃ  smart farming irrigation system
-
-   Collects sensor data and submits it to the SAP IoT service
-
-*/
 
 #include "arduino_secrets.h"
 #include <ArduinoBearSSL.h>         // For SSL/TLS protocol
@@ -15,7 +7,19 @@
 #include <WiFiNINA.h>               // For Server-Client connections
 #include <Arduino_MKRIoTCarrier.h>  // For controlling components on board
 
+#include <Servo.h>
+#include <ComponentObject.h>
+#include <RangeSensor.h>
+#include <SparkFun_VL53L1X.h>
+#include <vl53l1x_class.h>
+#include <vl53l1_error_codes.h>
+#include <Wire.h>
+
 MKRIoTCarrier carrier; 
+SFEVL53L1X distanceSensor;
+Servo Servo1;
+Servo Servo2;
+
 
 // Enter your sensitive data in arduino_secrets.h
 const char  ssid[]       = SECRET_SSID;
@@ -35,8 +39,12 @@ float ambientTemperature;
 float soilMoisture;
 int ambientHumidity;
 int red, green, blue, ambientLight;
+int distance;
 
 int moistPin = A5;                   // Analog input from carrier board
+
+int servoPin = A3;
+int servoPin2 = A1;
 
 void setup() {
   Serial.begin(115200);
@@ -65,6 +73,18 @@ void setup() {
   CARRIER_CASE = false;
   carrier.begin();
   carrier.display.setRotation(0);
+
+  if (distanceSensor.begin() != 0) //Begin returns 0 on a good init
+  {
+    Serial.println("Sensor failed to begin. Please check wiring. Freezing...");
+    while (1)
+      ;
+  }
+  Serial.println("Sensor online!");
+
+  Servo1.attach(servoPin);
+  Servo2.attach(servoPin2);
+  
   delay(1500);
 }
 
@@ -89,6 +109,17 @@ void loop() {
     publishMessage();
     updateScreen();
   }
+   // Make servo go to 0 degrees 
+   Servo1.write(0); 
+   delay(1000); 
+   // Make servo go to 90 degrees 
+   Servo1.write(30); 
+   delay(1000); 
+   // Make servo go to 180 degrees 
+   Servo2.write(0); 
+   delay(1000);
+   Servo2.write(180); 
+   delay(1000);
 }
 
 unsigned long getTime() {
@@ -144,11 +175,34 @@ void collectSensorData() {
   soilMoisture = map(raw_moisture, 0, 1023, 100, 0);
 
   // read ambient light
-  //while (!carrier.colorAvailable()) {
+  if (carrier.Light.colorAvailable()) {
+    
   //  delay(1000);
   //  Serial.println("Light not yet available");
-  //}
+  
   carrier.Light.readColor(red, green, blue, ambientLight);
+    if (red >= 135 && green>= 135 && blue>= 135)  {
+      Serial.println("White Colour Detected");  
+    }
+  }
+  
+  // Water level reading
+  distanceSensor.startRanging(); //Write configuration bytes to initiate measurement
+  while (!distanceSensor.checkForDataReady())
+  {
+    delay(1);
+  }
+  distance = distanceSensor.getDistance();
+  distanceSensor.clearInterrupt();
+  distanceSensor.stopRanging();
+  Serial.print("Distance(mm): ");
+  Serial.println(distance);
+
+  Serial.print("Light Int: ");
+  Serial.println(ambientLight);
+
+  Serial.print("Soil Moist: ");
+  Serial.println(soilMoisture);
 }
 
 void publishMessage() {
@@ -196,7 +250,7 @@ void onMessageReceived(int messageSize) {
   if (payload.indexOf("irrigationStatus") > -1) {
     if (payload.indexOf("start") > -1) {
       carrier.Relay1.close();
-      carrier.leds.setPixelColor(0, 100); 
+      carrier.leds.setPixelColor(0, 100);
       carrier.leds.setPixelColor(4, 0);
     } else if (payload.indexOf("stop") > -1) {
       carrier.Relay1.open();
@@ -216,11 +270,13 @@ void updateScreen() {
   String dispMsg1 = "Temp: ";
   String dispMsg2 = "RelH: ";
   String dispMsg3 = "Soil: ";
-
+  String dispMsg4 = "Dist: ";
+  
   dispMsg1 = dispMsg1 + ambientTemperature;
   dispMsg2 = dispMsg2 + ambientHumidity;
   dispMsg3 = dispMsg3 + soilMoisture;
-
+  dispMsg4 = dispMsg4 + distance;
+  
   carrier.display.fillScreen(ST77XX_BLACK);
   carrier.display.setTextColor(ST77XX_WHITE);
   carrier.display.setTextSize(2);
@@ -232,4 +288,6 @@ void updateScreen() {
   carrier.display.print(dispMsg2);
   carrier.display.setCursor(40, 130);
   carrier.display.print(dispMsg3);
+  carrier.display.setCursor(40, 170);
+  carrier.display.print(dispMsg4);
 }
