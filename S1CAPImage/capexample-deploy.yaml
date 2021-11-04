@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capexample-app-team06
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: capexample-app-team06
+  template:
+    metadata:
+      labels:
+        app: capexample-app-team06
+        version: v1
+    spec:
+      containers:
+      - name: capexample-app-team06
+        image: haziqilham/learningday
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+          requests:
+            memory: 32Mi
+        ports:
+        - containerPort: 4004
+          name: http
+        volumeMounts:
+        - mountPath: /usr/src/app/myvolume
+          name: capexample-volume 
+        - mountPath: /usr/src/app/config
+          name: capexample-file01-configmap
+      volumes:
+      - name: capexample-volume
+        persistentVolumeClaim:
+          claimName: capexample-volumeclaim
+      - name: capexample-file01-configmap
+        configMap: 
+          name: capexample-file01
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: capexample-service-team06
+  labels:
+    app: capexample-app
+spec:
+  ports:
+  - port: 4004
+    name: http
+    targetPort: 4004
+  selector:
+    app: capexample-app
+---
+apiVersion: gateway.kyma-project.io/v1alpha1
+kind: APIRule
+metadata:
+  name: apj-train-capex1-rule
+spec:
+  gateway: kyma-gateway.kyma-system.svc.cluster.local
+  service:
+    name: capexample-service
+    port: 4004
+    host: apj-train-capex1
+  rules:
+    - path: /.*
+      methods: ["GET"]
+      mutators: []
+      accessStrategies:
+        - handler: noop
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: capexample-volumeclaim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: capexample-file01
+data:
+  testfile01.txt: |
+    # This is just a sample file content
+    # for a file added through yaml

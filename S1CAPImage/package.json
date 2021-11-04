@@ -1,8 +1,8 @@
 {
-  "name": "S1CAPImage",
+  "name": "S1_CAPImage",
   "version": "1.0.0",
   "description": "A simple CAP project.",
-  "repository": "https://github.com/haziqilham/EBS-Repo",
+  "repository": "<Add your repository here>",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
@@ -16,12 +16,11 @@
     "start": "cds run",
     "build": "cds build/all --clean"
   },
-  "cds":{
-    "requires":{
-      "db":{
-        "kind":"sqlite"
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "sqlite"
       }
     }
   }
 }
-
