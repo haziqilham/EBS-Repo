@@ -1,0 +1,5 @@
+node_module
+npm-debug.log
+default-env*.json
+Dockerfile
+README.md
